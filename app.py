@@ -2,79 +2,94 @@ import streamlit as st
 import joblib
 import numpy as np
 
-# Load all models
-models = joblib.load("all_disease_models.pkl")
+# ---------------- CONFIG ----------------
+st.set_page_config(
+    page_title="Multi Disease Prediction",
+    page_icon="🩺",
+    layout="centered"
+)
 
-# Sidebar navigation
+# ---------------- LOAD MODELS ----------------
+@st.cache_resource
+def load_models():
+    return joblib.load("all_disease_models.pkl")
+
+models = load_models()
+
+# ---------------- SIDEBAR ----------------
 st.sidebar.title("Disease Prediction System")
-page = st.sidebar.radio("Select Disease", ["Diabetes", "Heart Disease", "Kidney Disease"])
+page = st.sidebar.radio(
+    "Select Disease",
+    ["Diabetes", "Heart Disease", "Kidney Disease"]
+)
 
 st.title("🩺 Multi-Disease Prediction App")
 
-# ----------------- DIABETES PAGE -----------------
+# ---------------- DIABETES ----------------
 if page == "Diabetes":
     st.header("Diabetes Prediction")
-    st.write("Enter patient details to predict Diabetes:")
 
-    pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0)
-    glucose = st.number_input("Glucose", min_value=0, max_value=300, value=120)
-    bp = st.number_input("Blood Pressure", min_value=0, max_value=200, value=70)
-    skin = st.number_input("Skin Thickness", min_value=0, max_value=100, value=20)
-    insulin = st.number_input("Insulin", min_value=0, max_value=900, value=80)
-    bmi = st.number_input("BMI", min_value=0.0, max_value=100.0, value=25.0)
-    dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=5.0, value=0.5)
-    age = st.number_input("Age", min_value=0, max_value=120, value=30)
+    pregnancies = st.number_input("Pregnancies", 0, 20, 0)
+    glucose = st.number_input("Glucose", 0, 300, 120)
+    bp = st.number_input("Blood Pressure", 0, 200, 70)
+    skin = st.number_input("Skin Thickness", 0, 100, 20)
+    insulin = st.number_input("Insulin", 0, 900, 80)
+    bmi = st.number_input("BMI", 0.0, 100.0, 25.0)
+    dpf = st.number_input("Diabetes Pedigree Function", 0.0, 5.0, 0.5)
+    age = st.number_input("Age", 0, 120, 30)
 
     if st.button("Predict Diabetes"):
-        input_data = [pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]
-        prediction = models["diabetes_model"].predict(models["diabetes_scaler"].transform([input_data]))[0]
-        result = "Positive" if prediction == 1 else "Negative"
-        st.success(f"Diabetes Prediction: {result}")
+        data = np.array([[pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]])
+        scaled = models["diabetes_scaler"].transform(data)
+        prediction = models["diabetes_model"].predict(scaled)[0]
 
-# ----------------- HEART DISEASE PAGE -----------------
+        st.success("🟢 Positive" if prediction == 1 else "🟢 Negative")
+
+# ---------------- HEART DISEASE ----------------
 elif page == "Heart Disease":
     st.header("Heart Disease Prediction")
-    st.write("Enter patient details to predict Heart Disease:")
 
-    age = st.number_input("Age", min_value=0, max_value=120, value=50)
+    age = st.number_input("Age", 0, 120, 50)
     sex = st.radio("Sex", ["Male", "Female"])
-    cp = st.selectbox("Chest Pain Type (0–3)", [0,1,2,3])
-    trestbps = st.number_input("Resting Blood Pressure", min_value=0, max_value=250, value=120)
-    chol = st.number_input("Serum Cholesterol", min_value=0, max_value=600, value=200)
-    fbs = st.radio("Fasting Blood Sugar >120 mg/dl", ["Yes", "No"])
-    restecg = st.selectbox("Resting ECG (0–2)", [0,1,2])
-    thalach = st.number_input("Max Heart Rate Achieved", min_value=0, max_value=250, value=150)
-    exang = st.radio("Exercise Induced Angina", ["Yes","No"])
-    oldpeak = st.number_input("Oldpeak", min_value=0.0, max_value=10.0, value=1.0)
-    slope = st.selectbox("Slope of ST Segment", [0,1,2])
-    ca = st.selectbox("Number of Major Vessels (0–3)", [0,1,2,3])
-    thal = st.selectbox("Thalassemia (1–3)", [1,2,3])
+    cp = st.selectbox("Chest Pain Type", [0, 1, 2, 3])
+    trestbps = st.number_input("Resting BP", 0, 250, 120)
+    chol = st.number_input("Cholesterol", 0, 600, 200)
+    fbs = st.radio("Fasting Blood Sugar > 120", ["Yes", "No"])
+    restecg = st.selectbox("Resting ECG", [0, 1, 2])
+    thalach = st.number_input("Max Heart Rate", 0, 250, 150)
+    exang = st.radio("Exercise Induced Angina", ["Yes", "No"])
+    oldpeak = st.number_input("Oldpeak", 0.0, 10.0, 1.0)
+    slope = st.selectbox("Slope", [0, 1, 2])
+    ca = st.selectbox("Major Vessels", [0, 1, 2, 3])
+    thal = st.selectbox("Thalassemia", [1, 2, 3])
 
     if st.button("Predict Heart Disease"):
-        sex_val = 1 if sex=="Male" else 0
-        fbs_val = 1 if fbs=="Yes" else 0
-        exang_val = 1 if exang=="Yes" else 0
+        sex = 1 if sex == "Male" else 0
+        fbs = 1 if fbs == "Yes" else 0
+        exang = 1 if exang == "Yes" else 0
 
-        input_data = [age, sex_val, cp, trestbps, chol, fbs_val, restecg, thalach, exang_val, oldpeak, slope, ca, thal]
-        prediction = models["heart_model"].predict(models["heart_scaler"].transform([input_data]))[0]
-        result = "Positive" if prediction == 1 else "Negative"
-        st.success(f"Heart Disease Prediction: {result}")
+        data = np.array([[age, sex, cp, trestbps, chol, fbs,
+                          restecg, thalach, exang, oldpeak,
+                          slope, ca, thal]])
 
-# ----------------- KIDNEY DISEASE PAGE -----------------
+        scaled = models["heart_scaler"].transform(data)
+        prediction = models["heart_model"].predict(scaled)[0]
+
+        st.success("🔴 Positive" if prediction == 1 else "🟢 Negative")
+
+# ---------------- KIDNEY DISEASE ----------------
 elif page == "Kidney Disease":
     st.header("Kidney Disease Prediction")
-    st.write("Enter patient numeric details to predict Kidney Disease:")
 
-    # Get numeric feature names from the model/scaler
-    feature_names = models["kidney_scaler"].mean_.shape[0]
-    kidney_inputs = []
-    for i in range(feature_names):
-        val = st.number_input(f"Feature {i+1}", value=0.0)
-        kidney_inputs.append(val)
+    feature_count = models["kidney_scaler"].mean_.shape[0]
+    inputs = []
+
+    for i in range(feature_count):
+        inputs.append(st.number_input(f"Feature {i+1}", value=0.0))
 
     if st.button("Predict Kidney Disease"):
-        input_data = np.array(kidney_inputs).reshape(1,-1)
-        prediction = models["kidney_model"].predict(models["kidney_scaler"].transform(input_data))[0]
-        result = "CKD" if prediction == 1 else "Not CKD"
-        st.success(f"Kidney Disease Prediction: {result}")
+        data = np.array(inputs).reshape(1, -1)
+        scaled = models["kidney_scaler"].transform(data)
+        prediction = models["kidney_model"].predict(scaled)[0]
 
+        st.success("🔴 CKD Detected" if prediction == 1 else "🟢 Not CKD")
